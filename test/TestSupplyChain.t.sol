@@ -14,7 +14,14 @@ contract SupplyChainCreateProductTest is Test {
     error SupplyChain__ProducedDateMustBeValid();
     error SupplyChain__ExpirationDateMustBeGreaterThanProductionDate();
     error OwnableUnauthorizedAccount(address account);
-
+    
+      event Tracking(
+        uint256 indexed productId,
+        string location,
+       SupplyChain.ProductStatus status,
+        uint256 producedDate,
+        uint256 expirationDate
+    );
     function setUp() public {
         // Deploy the contract as the owner
         vm.prank(owner);
@@ -105,4 +112,28 @@ contract SupplyChainCreateProductTest is Test {
         // Call createProduct
         supplyChain.createProduct(location, producedDate, expirationDate);
     }
+
+function testTrackingEventIsEmitted() public {
+    // Arrange: Ürün oluşturmak için gerekli veriler
+    string memory location = "Factory";
+    uint256 producedDate = block.timestamp;
+    uint256 expirationDate = block.timestamp + 30 days;
+
+    // `Tracking` eventini bekliyoruz
+    vm.expectEmit(true, false, false, true); // productId indexed olduğu için true, diğerleri indexed değil.
+    emit SupplyChain.Tracking(1, location, SupplyChain.ProductStatus.Produce, producedDate, expirationDate);
+
+    // Act: Ürün oluşturuluyor
+    vm.prank(owner); // İşlemi `owner` rolünde yapıyoruz.
+    supplyChain.createProduct(location, producedDate, expirationDate);
+
+    // Assert: Ürün detaylarını kontrol edelim
+    SupplyChain.ProductDetails memory product = supplyChain.getProductDetails(1);
+    assertEq(product.id, 1);
+    assertEq(product.location, location);
+    assertEq(uint256(product.status), uint256(SupplyChain.ProductStatus.Produce));
+    assertEq(product.producedDate, producedDate);
+    assertEq(product.expirationDate, expirationDate);
+}
+
 }
